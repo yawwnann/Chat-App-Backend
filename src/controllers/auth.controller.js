@@ -1,6 +1,6 @@
+import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import { generateToken } from "../lib/utils.js";
 import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
@@ -89,56 +89,27 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    console.log("UpdateProfile - Incoming request:", req.originalUrl);
-    console.log("UpdateProfile - Request headers:", req.headers);
-    console.log("UpdateProfile - Request body:", req.body);
-
-    // 1. Periksa req.user dan req.user._id
-    if (!req.user || !req.user._id) {
-      console.error("UpdateProfile - req.user or req.user._id is undefined");
-      return res.status(500).json({ message: "Internal server error" });
-    }
+    const { profilePic } = req.body;
     const userId = req.user._id;
 
-    const { profilePic } = req.body;
-
     if (!profilePic) {
-      console.log("UpdateProfile - No profile pic provided");
       return res.status(400).json({ message: "Profile pic is required" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic, {
-      timestamp: Math.floor(Date.now() / 1000),
-    });
-
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: uploadResponse.secure_url },
       { new: true }
     );
 
-    console.log("UpdateProfile - User updated:", updatedUser);
     res.status(200).json(updatedUser);
   } catch (error) {
-    // 2. Tambahkan logging error yang lebih spesifik
-    console.error("UpdateProfile - Error:", error);
-    console.error("UpdateProfile - Error type:", error.constructor.name);
-    console.error("UpdateProfile - Error stack:", error.stack);
-
-    // 3. Tangani Error Secara Lebih Spesifik (Contoh)
-    if (error.name === "ValidationError") {
-      // Mongoose validation error
-      return res
-        .status(400)
-        .json({ message: "Invalid data", errors: error.errors });
-    } else if (error.name === "CloudinaryError") {
-      // Custom Cloudinary error (if you define it)
-      return res.status(500).json({ message: "Failed to upload image" });
-    } else {
-      return res.status(500).json({ message: "Internal server error" });
-    }
+    console.log("error in update profile:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+
 export const checkAuth = (req, res) => {
   try {
     res.status(200).json(req.user);
